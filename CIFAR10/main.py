@@ -1,13 +1,17 @@
 import argparse
 import torch
 import torch.nn as nn
+from torch.utils.tensorboard import SummaryWriter
 import time
 import torchvision
 import torchvision.transforms as transforms
 
 
+from torchvision.utils import make_grid 
+import matplotlib.pyplot as plt
+
 from torchinfo import summary
-from Lenet5 import LeNet5, LeNet5XNOR
+from AlexNet import AlexNet, AlexNetXNOR
 
 parser = argparse.ArgumentParser(
                     prog='pytorch Lenet5 training ',
@@ -30,24 +34,22 @@ num_classes = 10
 learning_rate = args.lr
 num_epochs = args.epochs
 
-train_dataset = torchvision.datasets.MNIST(root = './data',
+train_dataset = torchvision.datasets.CIFAR10(root = './data',
                                                train = True,
                                                transform = transforms.Compose([
-                                                      transforms.Resize((32,32)),
+                                                #       transforms.Resize((224, 224)),
                                                       transforms.ToTensor(),
-                                                      # transforms.Lambda(lambda x: 1.175 * (1 - x)), #troca preto com branco e vice-versa
-                                                      transforms.Normalize(mean = (0.1307,), std = (0.3081,)) #uma das partes mais importantes é a normalização
+                                                      transforms.Normalize(mean=(0.4914, 0.4822, 0.4465), std=(0.2023, 0.1994, 0.2010))
                                                       ]),
                                                download = True)
     
     
-test_dataset = torchvision.datasets.MNIST(root = './data',
+test_dataset = torchvision.datasets.CIFAR10(root = './data',
                                             train = False,
                                             transform = transforms.Compose([
-                                                    transforms.Resize((32,32)),
+                                                    # transforms.Resize((224, 224)),
                                                     transforms.ToTensor(),
-                                                    #   transforms.Lambda(lambda x: 1.175 * (1 - x)),
-                                                    transforms.Normalize(mean = (0.1307,), std = (0.3081,)),
+                                                    transforms.Normalize(mean=(0.4914, 0.4822, 0.4465), std=(0.2023, 0.1994, 0.2010))
                                                     ]),
                                             download=True)
     
@@ -56,7 +58,7 @@ train_loader = torch.utils.data.DataLoader(dataset = train_dataset,
                                             batch_size = batch_size,
                                             shuffle = True,
                                             pin_memory=True,
-                                            num_workers=19
+                                            num_workers=16
                                             )
     
     
@@ -64,7 +66,7 @@ test_loader = torch.utils.data.DataLoader(dataset = test_dataset,
                                             batch_size = batch_size,
                                             shuffle = False,
                                             pin_memory=True,
-                                            num_workers=20
+                                            num_workers=16
                                             )
 
 
@@ -73,7 +75,7 @@ print(f"dispositivo: {device}")
 
 
     
-model:nn.Module = LeNet5(num_classes) if not args.binarized else LeNet5XNOR(num_classes)
+model:nn.Module = AlexNet(num_classes) if not args.binarized else AlexNetXNOR(num_classes)
 
 i, _ = next(iter(train_loader))
 summary(model, input_size=i.shape) 
@@ -85,6 +87,8 @@ cost = nn.CrossEntropyLoss()
 
 
 total_samples = len(train_loader.dataset) #type: ignore
+print(total_samples)
+print(len(train_loader))
 
 def train(epoch):
     model.train()
